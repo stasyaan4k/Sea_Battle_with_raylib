@@ -46,7 +46,7 @@ void Grid::Draw(bool highlightCells) const {
     }
 }
 
-
+//Геттеры
 int Grid::GetWidth() const {
     return width;
 }
