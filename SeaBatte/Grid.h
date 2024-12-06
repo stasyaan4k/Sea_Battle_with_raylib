@@ -9,6 +9,9 @@ struct CellState {
     bool isHit = false;
     bool isMiss = false;
     int bufferCount = 0;
+    bool isBlocked = false;
+    float cellX, cellY;
+    int size = 40;
 
     CellState() = default;
 };
@@ -33,6 +36,7 @@ public:
     bool HasBeenShot(int x, int y);   // Проверка, стреляли ли уже в клетку
     bool IsValidCell(int x, int y) const;
     bool IsShipDestroyed(int x, int y);
+    void BlockSurroundingCellsAndDraw(int x, int y);
 
     int GetWidth() const;
     int GetHeight() const;

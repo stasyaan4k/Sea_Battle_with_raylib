@@ -96,20 +96,30 @@ void Game::Shoot(Vector2 cell) {
     int x = static_cast<int>(cell.x);
     int y = static_cast<int>(cell.y);
 
+    // Проверка, была ли клетка уже обстреляна
     if (botGrid.HasBeenShot(x, y)) {
         std::cout << "Игрок выбрал уже обстрелянную клетку: (" << x << ", " << y << ").\n";
         return;
     }
 
+    // Если выстрел попал
     if (botGrid.Shoot(x, y)) {
         std::cout << "Игрок попал по клетке (" << x << ", " << y << ").\n";
+
+        // Проверяем, уничтожен ли корабль
+        if (botGrid.IsShipDestroyed(x, y)) {
+            std::cout << "Корабль уничтожен на клетке (" << x << ", " << y << ").\n";
+
+            // Блокируем и отрисовываем точки вокруг корабля
+            botGrid.BlockSurroundingCellsAndDraw(x, y);
+        }
     }
+    // Если выстрел мимо
     else {
         std::cout << "Игрок промахнулся! Передача хода боту.\n";
         SwitchTurn(); // Передаём ход боту
     }
 }
-
 
 // Выстрел бота
 void Game::BotShoot() {
@@ -154,6 +164,7 @@ void Game::BotShoot() {
             if (playerGrid.IsShipDestroyed(x, y)) {
                 std::cout << "Корабль уничтожен!\n";
                 botTargetQueue.clear(); // Очищаем очередь
+                playerGrid.BlockSurroundingCellsAndDraw(x, y);
             }
             else {
                 AddSurroundingTargets(x, y); // Добавляем соседние клетки для следующего хода
@@ -260,8 +271,8 @@ void Game::DrawTurnIndicator() const {
     int boxX = GetScreenWidth() - boxWidth - padding;
     int boxY = GetScreenHeight() - boxHeight - padding;
 
-    Color boxColor = playerTurn ? GREEN : RED; // Зелёный для игрока, красный для бота
-    Color textColor = WHITE;
+    Color boxColor = WHITE; // Зелёный для игрока, красный для бота
+    Color textColor = BLACK;
 
     const char* turnText = playerTurn ? "Player's Turn" : "Bot's Turn";
 

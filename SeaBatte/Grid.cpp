@@ -42,9 +42,16 @@ void Grid::Draw(bool highlightCells) const {
                 // Точка для промаха
                 DrawCircle(cell.x + cell.width / 2, cell.y + cell.height / 2, cellSize * 0.1f, BLUE);
             }
+
+            // Рисуем точки вокруг уничтоженного корабля
+            if (cellMap[i][j].isBlocked) {
+                // Точка в центре клетки
+                DrawCircle(cell.x + cell.width / 2, cell.y + cell.height / 2, cellSize * 0.1f, BLUE);
+            }
         }
     }
 }
+
 
 //Геттеры
 int Grid::GetWidth() const {
@@ -365,3 +372,32 @@ bool Grid::IsShipDestroyed(int x, int y) {
     // Если все занятые клетки обстреляны, корабль уничтожен
     return true;
 }
+
+void Grid::BlockSurroundingCellsAndDraw(int x, int y) {
+    int startX = x, startY = y, endX = x, endY = y;
+
+    // Поиск границ корабля
+    while (startX > 0 && cellMap[y][startX - 1].isOccupied) {
+        startX--;
+    }
+    while (endX < width - 1 && cellMap[y][endX + 1].isOccupied) {
+        endX++;
+    }
+    while (startY > 0 && cellMap[startY - 1][x].isOccupied) {
+        startY--;
+    }
+    while (endY < height - 1 && cellMap[endY + 1][x].isOccupied) {
+        endY++;
+    }
+
+    // Помечаем клетки вокруг корабля
+    for (int i = startY - 1; i <= endY + 1; i++) {
+        for (int j = startX - 1; j <= endX + 1; j++) {
+            if (i >= 0 && i < height && j >= 0 && j < width && !cellMap[i][j].isOccupied) {
+                cellMap[i][j].isBlocked = true; // Помечаем клетку как заблокированную
+                cellMap[i][j].isMiss = true;
+            }
+        }
+    }
+}
+
