@@ -1,16 +1,12 @@
 #include "Ship.h"
 
-// Конструктор
 Ship::Ship(int length, float x, float y, float cellSize)
     : length(length), x(x), y(y), startX(x), startY(y), cellSize(cellSize), isHorizontal(true) {}
-
-
 
 // Отрисовка корабля
 void Ship::Draw(bool isBotShip) const {
     Color color = isBotShip ? Fade(WHITE, 0.0f) : Fade(BLUE, 0.3f);
 
-    // Рисуем основной прямоугольник корабля
     if (isHorizontal) {
         DrawRectangle(x, y, cellSize * length, cellSize, color);
     }

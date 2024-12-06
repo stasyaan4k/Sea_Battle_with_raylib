@@ -1,24 +1,20 @@
 #include "Game.h"
-#include <iostream>
-#include <cstdlib>
-#include <ctime>
-#include <thread>
 
-// Конструктор
+
 Game::Game()
     : playerGrid(200, 200, 40, 10, 10),
     botGrid(screenWidth - 200 - 400, 200, 40, 10, 10),
     draggedShip(nullptr), isDragging(false), isGameStarted(false),
     botHuntingMode(false), playerTurn(true), isBotShooting(false), actionDelay(0.0f) {
     InitWindow(screenWidth, screenHeight, "Sea Battle");
-    startButton = { screenWidth / 2 - 150, screenHeight - 100, 300, 80 }; // Кнопка старта
+    startButton = { screenWidth / 2 - 150, screenHeight - 100, 300, 80 }; 
     SetTargetFPS(60);
     InitShips();
-    std::srand(std::time(nullptr)); // Инициализация генератора случайных чисел
+    std::srand(std::time(nullptr)); 
 }
 
-// Деструктор
 Game::~Game() {
+    UnloadMusic();
     CloseWindow();
 }
 
@@ -41,7 +37,7 @@ void Game::InitShips() {
     botGrid.PlaceRandomShipsForBot(botShips);
 }
 
-// Обработка ввода
+//Управление
 void Game::HandleInput() {
     Vector2 mousePosition = GetMousePosition();
 
@@ -51,7 +47,6 @@ void Game::HandleInput() {
     }
 
     if (!isGameStarted) {
-        // Перетаскивание корабля игрока
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             for (Ship& ship : ships) {
                 if (CheckCollisionPointRec(mousePosition, ship.GetBounds())) {
@@ -79,7 +74,6 @@ void Game::HandleInput() {
         }
     }
     else {
-        // Стрельба игрока
         if (!isBotShooting) {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                 Vector2 selectedCell = botGrid.GetCellUnderMouse();
@@ -96,47 +90,38 @@ void Game::Shoot(Vector2 cell) {
     int x = static_cast<int>(cell.x);
     int y = static_cast<int>(cell.y);
 
-    // Проверка, была ли клетка уже обстреляна
     if (botGrid.HasBeenShot(x, y)) {
-        std::cout << "Игрок выбрал уже обстрелянную клетку: (" << x << ", " << y << ").\n";
         return;
     }
 
-    // Если выстрел попал
     if (botGrid.Shoot(x, y)) {
-        std::cout << "Игрок попал по клетке (" << x << ", " << y << ").\n";
-
-        // Проверяем, уничтожен ли корабль
         if (botGrid.IsShipDestroyed(x, y)) {
-            std::cout << "Корабль уничтожен на клетке (" << x << ", " << y << ").\n";
-
-            // Блокируем и отрисовываем точки вокруг корабля
-            botGrid.BlockSurroundingCellsAndDraw(x, y);
+            PlaySound(destroySound);
+            botGrid.BlockSurroundingCells(x, y);
+        }
+        else {
+            PlaySound(hitSound);
         }
     }
-    // Если выстрел мимо
     else {
-        std::cout << "Игрок промахнулся! Передача хода боту.\n";
-        SwitchTurn(); // Передаём ход боту
+        PlaySound(missSound);
+        SwitchTurn(); 
     }
 }
 
 // Выстрел бота
 void Game::BotShoot() {
     if (isBotShooting) {
-        std::cout << "Бот уже стреляет. Ждём завершения...\n";
         return;
     }
 
     isBotShooting = true;
-    std::cout << "Бот начал ход.\n";
 
     SetTimeout([this]() {
-        Vector2 target = { -1, -1 }; // Инициализация target
+        Vector2 target = { -1, -1 }; 
         bool validShot = false;
         int x = -1, y = -1;
 
-        // Если есть координаты в очереди, берём их
         if (!botTargetQueue.empty()) {
             target = botTargetQueue.back();
             botTargetQueue.pop_back();
@@ -147,7 +132,6 @@ void Game::BotShoot() {
             validShot = playerGrid.IsValidCell(x, y) && !playerGrid.HasBeenShot(x, y);
         }
 
-        // Если очередь пуста или координаты из очереди некорректны, ищем случайную клетку
         while (!validShot) {
             target = GetRandomCell();
             x = static_cast<int>(target.x);
@@ -156,54 +140,44 @@ void Game::BotShoot() {
             validShot = playerGrid.IsValidCell(x, y) && !playerGrid.HasBeenShot(x, y);
         }
 
-        // Совершаем выстрел
         if (playerGrid.Shoot(x, y)) {
-            std::cout << "Бот попал по клетке (" << x << ", " << y << ").\n";
-            playerGrid.MarkHit(x, y); // Отмечаем попадание
+            playerGrid.MarkHit(x, y); 
 
             if (playerGrid.IsShipDestroyed(x, y)) {
-                std::cout << "Корабль уничтожен!\n";
-                botTargetQueue.clear(); // Очищаем очередь
-                playerGrid.BlockSurroundingCellsAndDraw(x, y);
+                PlaySound(destroySound);
+                botTargetQueue.clear(); 
+                playerGrid.BlockSurroundingCells(x, y);
             }
             else {
-                AddSurroundingTargets(x, y); // Добавляем соседние клетки для следующего хода
+                PlaySound(hitSound);
+                AddSurroundingTargets(x, y);
             }
 
-            // После попадания, бот стреляет снова с задержкой
             SetTimeout([this]() {
-                isBotShooting = false; // Завершаем текущий ход
-                BotShoot(); // Бот продолжает ход
-                }, 2.0f);
+                isBotShooting = false; 
+                BotShoot(); 
+            }, 2.0f);
 
         }
         else {
-            // Если промахнулся
-            std::cout << "Бот промахнулся в клетку (" << x << ", " << y << ").\n";
-            isBotShooting = false; // Завершаем ход
-
-            // Передача хода игроку после промаха с задержкой
-
-            std::cout << "Бот завершил ход. Передача хода игроку.\n";
-            SwitchTurn(); // Передаём ход игроку
+            PlaySound(missSound);
+            isBotShooting = false;
+            SwitchTurn(); 
 
         }
 
-        }, 2.0f); // Задержка перед первым выстрелом
+        }, 2.0f);
 }
 
 // Установка задержки
 void Game::SetTimeout(std::function<void()> func, float seconds) {
-    std::cout << "SetTimeout: запускаем таймер на " << seconds << " секунд.\n";
     std::thread([func, seconds]() {
         std::this_thread::sleep_for(std::chrono::duration<float>(seconds));
-        std::cout << "SetTimeout: таймер завершён, выполняем функцию.\n";
         func();
         }).detach();
 }
 
-
-// Проверка валидности клетки
+// Проверка корректности клетки
 bool Game::IsCellValid(Vector2 cell) {
     int x = static_cast<int>(cell.x);
     int y = static_cast<int>(cell.y);
@@ -222,16 +196,32 @@ Vector2 Game::GetRandomCell() {
 
 // Переключение хода
 void Game::SwitchTurn() {
-    playerTurn = !playerTurn; // Меняем текущего игрока
+    playerTurn = !playerTurn;
 
     if (playerTurn) {
-        std::cout << "Ход переходит к игроку.\n";
     }
     else {
-        std::cout << "Ход переходит к боту.\n";
-        BotShoot(); // Бот начинает ход
+        BotShoot(); 
     }
-    DrawTurnIndicator(); // Обновляем индикатор хода после переключения
+    DrawTurnIndicator(); 
+}
+
+//Звуки
+void Game::InitMusic() {
+    InitAudioDevice();
+
+   backgroundMusic = LoadMusicStream("assets/sounds/background.ogg");
+   hitSound = LoadSound("assets/sounds/hit.wav");
+   destroySound = LoadSound("assets/sounds/destroy.wav");
+   missSound = LoadSound("assets/sounds/miss.wav");
+}
+
+void Game::UnloadMusic() {
+    UnloadMusicStream(backgroundMusic);
+    UnloadSound(hitSound);
+    UnloadSound(destroySound);
+    UnloadSound(missSound);
+    CloseAudioDevice(); // Завершение работы с аудио
 }
 
 // Отрисовка кнопки старта
@@ -256,9 +246,6 @@ void Game::DrawStartButton() {
         if (allShipsPlaced) {
             isGameStarted = true;
         }
-        else {
-            DrawText("Place all ships to start!", screenWidth / 2 - 200, screenHeight / 2, 20, RED);
-        }
     }
 }
 
@@ -271,7 +258,7 @@ void Game::DrawTurnIndicator() const {
     int boxX = GetScreenWidth() - boxWidth - padding;
     int boxY = GetScreenHeight() - boxHeight - padding;
 
-    Color boxColor = WHITE; // Зелёный для игрока, красный для бота
+    Color boxColor = RAYWHITE;
     Color textColor = BLACK;
 
     const char* turnText = playerTurn ? "Player's Turn" : "Bot's Turn";
@@ -281,11 +268,10 @@ void Game::DrawTurnIndicator() const {
     DrawText(turnText, boxX + 10, boxY + 15, 20, textColor);
 }
 
-
-
 // Основной цикл игры
 void Game::Run() {
     while (!WindowShouldClose()) {
+        PlayMusicStream(backgroundMusic);
         HandleInput();
         Draw();
     }
@@ -313,11 +299,11 @@ void Game::Draw() {
     EndDrawing();
 }
 
+//Режим "охоты"
 void Game::AddSurroundingTargets(int x, int y) {
-    // Если уже есть хотя бы одно попадание, определяем направление
+ 
     bool horizontal = false, vertical = false;
 
-    // Проверяем соседние клетки из очереди
     for (const auto& target : botTargetQueue) {
         int tx = static_cast<int>(target.x);
         int ty = static_cast<int>(target.y);
@@ -331,18 +317,17 @@ void Game::AddSurroundingTargets(int x, int y) {
     }
 
     const std::vector<Vector2> horizontalDirections = {
-        {-1, 0}, {1, 0}  // Слева и справа
+        {-1, 0}, {1, 0}  
     };
 
     const std::vector<Vector2> verticalDirections = {
-        {0, -1}, {0, 1} // Сверху и снизу
+        {0, -1}, {0, 1}
     };
 
     const std::vector<Vector2> allDirections = {
-        {0, -1}, {0, 1}, {-1, 0}, {1, 0} // Все направления
+        {0, -1}, {0, 1}, {-1, 0}, {1, 0}
     };
 
-    // Если направление определено, используем только соответствующие направления
     const auto& directions = (horizontal) ? horizontalDirections :
         (vertical) ? verticalDirections :
         allDirections;
@@ -351,13 +336,11 @@ void Game::AddSurroundingTargets(int x, int y) {
         int nx = x + static_cast<int>(dir.x);
         int ny = y + static_cast<int>(dir.y);
 
-        // Проверяем, чтобы клетка находилась внутри границ поля и была корректной
         if (!playerGrid.IsValidCell(nx, ny)) {
-            continue; // Пропускаем клетки за пределами игрового поля
+            continue;
         }
 
         if (!playerGrid.HasBeenShot(nx, ny)) {
-            // Проверяем, чтобы клетка не была уже добавлена в очередь
             bool alreadyQueued = false;
             for (const auto& queued : botTargetQueue) {
                 if (static_cast<int>(queued.x) == nx && static_cast<int>(queued.y) == ny) {

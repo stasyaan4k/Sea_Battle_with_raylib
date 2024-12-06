@@ -8,25 +8,35 @@
 #include "Grid.h"
 #include "Ship.h"
 #include "raylib.h"
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <thread>
 
 class Game {
 public:
     Game();
     ~Game();
 
-    void Run();                // Основной игровой цикл
-    void HandleInput();        // Обработка ввода
-    void Draw();               // Отрисовка экрана
-    void Shoot(Vector2 cell);  // Выстрел игрока
-    void BotShoot();           // Выстрел бота
-    void SwitchTurn();         // Переключение хода
+    void Run();              
+    void HandleInput();      
+    void Draw();             
+    void Shoot(Vector2 cell);
+    void BotShoot();         
+    void SwitchTurn();    
+    void InitMusic();
+    void UnloadMusic();
 
 private:
-    // Константы экрана
+
     const float screenWidth = 1920;
     const float screenHeight = 1080;
+    
+    Music backgroundMusic;
+    Sound hitSound;
+    Sound destroySound;
+    Sound missSound;
 
-    // Игровые поля и параметры
     Grid playerGrid;
     Grid botGrid;
     std::vector<Ship> ships;    // Корабли игрока
@@ -34,27 +44,25 @@ private:
     Ship* draggedShip;          // Перетаскиваемый корабль
     Rectangle startButton;      // Кнопка начала игры
 
-    // Состояния игры
-    bool isDragging;
+    bool isDragging;            // Состояния игры
     bool isGameStarted;
     bool playerTurn;
     bool botHuntingMode;
 
-    Vector2 lastHitCell;        // Последняя успешная атака бота
-    std::vector<Vector2> huntQueue; // Очередь клеток для атак бота
-    std::vector<Vector2> botTargetQueue;
+    Vector2 lastHitCell;                  // Последняя успешная атака бота
+    std::vector<Vector2> huntQueue;       // Очередь клеток для атак бота в режиме "охоты"
+    std::vector<Vector2> botTargetQueue;  // Очередь клеток для атак бота
 
     // Таймеры
     bool isBotShooting;         // Бот выполняет выстрел
     float actionDelay;          // Общая задержка между действиями
 
-    // Приватные методы
-    void InitShips();                // Инициализация кораблей
-    void DrawStartButton();          // Отрисовка кнопки старта
-    void DrawTurnIndicator() const;  // Отрисовка индикатора текущего хода
-    void SetTimeout(std::function<void()> func, float seconds); // Таймер
-    Vector2 GetRandomCell();         // Получение случайной клетки
-    bool IsCellValid(Vector2 cell);  // Проверка валидности клетки
+    void InitShips();                
+    void DrawStartButton();          
+    void DrawTurnIndicator() const;  
+    void SetTimeout(std::function<void()> func, float seconds);
+    Vector2 GetRandomCell();
+    bool IsCellValid(Vector2 cell);
     void AddSurroundingTargets(int x, int y);
 };
 
