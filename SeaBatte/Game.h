@@ -11,7 +11,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
-#include <thread>
+
+enum GameState { MENU, GAME_PROCESS, EXIT };
 
 class Game {
 public:
@@ -26,12 +27,14 @@ public:
     void SwitchTurn();    
     void InitMusic();
     void UnloadMusic();
+   
 
 private:
-
     const float screenWidth = 1920;
     const float screenHeight = 1080;
-    
+
+    GameState state;
+
     Music backgroundMusic;
     Sound hitSound;
     Sound destroySound;
@@ -53,6 +56,9 @@ private:
     std::vector<Vector2> huntQueue;       // Очередь клеток для атак бота в режиме "охоты"
     std::vector<Vector2> botTargetQueue;  // Очередь клеток для атак бота
 
+    bool isGameOver = false ;
+    std::string winner = "";
+
     // Таймеры
     bool isBotShooting;         // Бот выполняет выстрел
     float actionDelay;          // Общая задержка между действиями
@@ -64,6 +70,10 @@ private:
     Vector2 GetRandomCell();
     bool IsCellValid(Vector2 cell);
     void AddSurroundingTargets(int x, int y);
+    void CheckVictory();
+    void DrawVictoryScreen();
+    void DrawMenu();
+    void Reset();
 };
 
 #endif // GAME_H

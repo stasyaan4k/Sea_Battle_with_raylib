@@ -40,6 +40,8 @@ public:
     bool IsValidCell(int x, int y) const;
     bool IsShipDestroyed(int x, int y);
     void BlockSurroundingCells(int x, int y);
+    bool AreAllShipsDestroyed() const;
+
 
     int GetWidth() const;
     int GetHeight() const;

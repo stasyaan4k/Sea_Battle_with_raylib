@@ -205,14 +205,19 @@ bool Grid::PlaceShip(Ship& ship) {
     return false;
 }
 
-//—брос карты €чеек
+//—брос карты
 void Grid::ResetGrid() {
     for (auto& row : cellMap) {
         for (auto& cell : row) {
+            cell.isHit = false;
+            cell.isMiss = false;
+            cell.isBlocked = false;
             cell.isOccupied = false;
             cell.bufferCount = 0;
         }
     }
+
+    ships.clear();
 }
 
 //–азмещение кораблей бота случайным образом
@@ -294,7 +299,7 @@ bool Grid::Shoot(int x, int y) {
     shots[y][x] = true;
 
     if (cellMap[y][x].isOccupied) {
-        cellMap[y][x].isHit = true; 
+        cellMap[y][x].isHit = true;
         return true;
     }
     else {
@@ -388,5 +393,16 @@ void Grid::BlockSurroundingCells(int x, int y) {
             }
         }
     }
+}
+
+bool Grid::AreAllShipsDestroyed() const {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (cellMap[y][x].isOccupied && !cellMap[y][x].isHit) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 

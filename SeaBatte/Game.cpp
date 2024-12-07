@@ -5,8 +5,7 @@ Game::Game()
     : playerGrid(200, 200, 40, 10, 10),
     botGrid(screenWidth - 200 - 400, 200, 40, 10, 10),
     draggedShip(nullptr), isDragging(false), isGameStarted(false),
-    botHuntingMode(false), playerTurn(true), isBotShooting(false), actionDelay(0.0f) {
-    InitWindow(screenWidth, screenHeight, "Sea Battle");
+    botHuntingMode(false), playerTurn(true), isBotShooting(false), actionDelay(0.0f), state(MENU) {
     startButton = { screenWidth / 2 - 150, screenHeight - 100, 300, 80 }; 
     SetTargetFPS(60);
     InitShips();
@@ -41,10 +40,24 @@ void Game::InitShips() {
 void Game::HandleInput() {
     Vector2 mousePosition = GetMousePosition();
 
-    if (IsKeyPressed(KEY_ESCAPE)) {
-        CloseWindow();
-        return;
+    if (state == MENU) {
+        Vector2 mousePosition = GetMousePosition();
+
+        if (CheckCollisionPointRec(mousePosition, { (float)(GetScreenWidth() / 2 - 300 / 2), (float)(GetScreenHeight() / 2), 300, 80 }) &&
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            state = GAME_PROCESS; 
+        }
+        else if (CheckCollisionPointRec(mousePosition, { (float)(GetScreenWidth() / 2 - 300 / 2), (float)(GetScreenHeight() / 2 + 100), 300, 80 }) &&
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            state = EXIT; 
+        }
     }
+    else if (state == GAME_PROCESS) {
+        if (IsKeyPressed(KEY_Q)) {
+            state = MENU; 
+        }
+    }
+    
 
     if (!isGameStarted) {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -107,6 +120,7 @@ void Game::Shoot(Vector2 cell) {
         PlaySound(missSound);
         SwitchTurn(); 
     }
+    CheckVictory();
 }
 
 // Выстрел бота
@@ -167,6 +181,7 @@ void Game::BotShoot() {
         }
 
         }, 2.0f);
+    CheckVictory();
 }
 
 // Установка задержки
@@ -210,10 +225,10 @@ void Game::SwitchTurn() {
 void Game::InitMusic() {
     InitAudioDevice();
 
-   backgroundMusic = LoadMusicStream("assets/sounds/background.ogg");
-   hitSound = LoadSound("assets/sounds/hit.wav");
-   destroySound = LoadSound("assets/sounds/destroy.wav");
-   missSound = LoadSound("assets/sounds/miss.wav");
+   backgroundMusic = LoadMusicStream("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\music.mp3");
+   hitSound = LoadSound("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\hitSound.mp3");
+   destroySound = LoadSound("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\destriyedSound.mp3");
+   missSound = LoadSound("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\missSound.mp3");
 }
 
 void Game::UnloadMusic() {
@@ -221,7 +236,7 @@ void Game::UnloadMusic() {
     UnloadSound(hitSound);
     UnloadSound(destroySound);
     UnloadSound(missSound);
-    CloseAudioDevice(); // Завершение работы с аудио
+    CloseAudioDevice();
 }
 
 // Отрисовка кнопки старта
@@ -270,10 +285,26 @@ void Game::DrawTurnIndicator() const {
 
 // Основной цикл игры
 void Game::Run() {
+    InitWindow(screenWidth, screenHeight, "Sea Battle");
+    InitMusic();
     while (!WindowShouldClose()) {
+        UpdateMusicStream(backgroundMusic);
         PlayMusicStream(backgroundMusic);
         HandleInput();
-        Draw();
+        switch (state)
+        {
+        case MENU:
+            DrawMenu();
+            break;
+        case GAME_PROCESS:
+            SetMusicVolume(backgroundMusic, 0.25f);
+            Draw();
+            break;
+        case EXIT:
+            CloseWindow();
+            exit(0);
+            break;
+        }
     }
 }
 
@@ -281,6 +312,9 @@ void Game::Run() {
 void Game::Draw() {
     BeginDrawing();
     ClearBackground(RAYWHITE);
+    if (isGameOver) {
+        DrawVictoryScreen();
+    }
 
     playerGrid.Draw(false);
     botGrid.Draw(true);
@@ -356,3 +390,123 @@ void Game::AddSurroundingTargets(int x, int y) {
     }
 }
 
+
+void Game::CheckVictory() {
+    if (playerGrid.AreAllShipsDestroyed()) {
+        isGameOver = true;
+        winner = "Bot"; 
+    }
+    else if (botGrid.AreAllShipsDestroyed()) {
+        isGameOver = true;
+        winner = "Player";
+    }
+}
+
+//Отрисовка побкдного экрана
+void Game::DrawVictoryScreen() {
+    DrawRectangle(0, 0, screenWidth, screenHeight, WHITE);
+
+    Rectangle frame = { screenWidth / 2 - 200, screenHeight / 4, 400, 300 };
+    DrawRectangleRec(frame, WHITE);                      
+    DrawRectangleLinesEx(frame, 5, BLACK);               
+
+    std::string victoryMessage = winner + " Wins!";
+    int fontSize = 40;
+    Vector2 textSize = MeasureTextEx(GetFontDefault(), victoryMessage.c_str(), fontSize, 2);
+    Vector2 textPos = { screenWidth / 2 - textSize.x / 2, frame.y + 20 };
+    DrawText(victoryMessage.c_str(), textPos.x, textPos.y, fontSize, RED); 
+    
+    Vector2 mousePoint = GetMousePosition();
+
+    Rectangle restartButton = { frame.x + 50, frame.y + 100, 300, 80 };
+    Color restartButtonColor = CheckCollisionPointRec(mousePoint, restartButton) ? GRAY : LIGHTGRAY;
+    DrawRectangleRec(restartButton, restartButtonColor);
+    DrawRectangleLinesEx(restartButton, 3, BLACK);
+ 
+    std::string restartText = "Restart";
+    Vector2 restartTextSize = MeasureTextEx(GetFontDefault(), restartText.c_str(), 30, 2);
+    Vector2 restartTextPos = {
+        restartButton.x + (restartButton.width - restartTextSize.x) / 2,
+        restartButton.y + (restartButton.height - restartTextSize.y) / 2
+    };
+    DrawText(restartText.c_str(), restartTextPos.x, restartTextPos.y, 30, BLACK);
+
+    Rectangle backToMenuButton = { frame.x + 50, frame.y + 200, 300, 80 };
+    Color backToMenuButtonColor = CheckCollisionPointRec(mousePoint, backToMenuButton) ? GRAY : LIGHTGRAY;
+    DrawRectangleRec(backToMenuButton, backToMenuButtonColor);
+    DrawRectangleLinesEx(backToMenuButton, 3, BLACK);
+
+    std::string backToMenuText = "Back to Menu";
+    Vector2 backToMenuTextSize = MeasureTextEx(GetFontDefault(), backToMenuText.c_str(), 30, 2);
+    Vector2 backToMenuTextPos = {
+        backToMenuButton.x + (backToMenuButton.width - backToMenuTextSize.x) / 2,
+        backToMenuButton.y + (backToMenuButton.height - backToMenuTextSize.y) / 2
+    };
+    DrawText(backToMenuText.c_str(), backToMenuTextPos.x, backToMenuTextPos.y, 30, BLACK);
+
+    if (CheckCollisionPointRec(mousePoint, restartButton) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        Reset();
+    }
+    else if (CheckCollisionPointRec(mousePoint, backToMenuButton) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        state = MENU;
+    }
+}
+
+// Метод для отрисовки меню
+void Game::DrawMenu() {
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    DrawText("SEA BATTLE", GetScreenWidth() / 2 - MeasureText("SEA BATTLE", 60) / 2, 50, 60, BLACK);
+
+    int buttonWidth = 300;
+    int buttonHeight = 80;
+    int centerX = GetScreenWidth() / 2 - buttonWidth / 2;
+    int centerY = GetScreenHeight() / 2;
+
+   
+    Vector2 mousePosition = GetMousePosition();
+
+   
+    Color startButtonColor = WHITE;
+    Color exitButtonColor = WHITE;
+
+    if (CheckCollisionPointRec(mousePosition, { (float)centerX, (float)centerY, (float)buttonWidth, (float)buttonHeight })) {
+        startButtonColor = LIGHTGRAY; 
+    }
+
+    int exitButtonY = centerY + buttonHeight + 20; 
+    if (CheckCollisionPointRec(mousePosition, { (float)centerX, (float)exitButtonY, (float)buttonWidth, (float)buttonHeight })) {
+        exitButtonColor = LIGHTGRAY; 
+    }
+    DrawRectangle(centerX, centerY, buttonWidth, buttonHeight, startButtonColor);                       
+    DrawRectangleLinesEx({ (float)centerX, (float)centerY, (float)buttonWidth, (float)buttonHeight }, 3, BLACK); 
+    DrawText("START GAME", centerX + buttonWidth / 2 - MeasureText("START GAME", 40) / 2,             
+        centerY + buttonHeight / 2 - 20, 40, BLACK);
+
+    DrawRectangle(centerX, exitButtonY, buttonWidth, buttonHeight, exitButtonColor);                   
+    DrawRectangleLinesEx({ (float)centerX, (float)exitButtonY, (float)buttonWidth, (float)buttonHeight }, 3, BLACK); 
+    DrawText("EXIT", centerX + buttonWidth / 2 - MeasureText("EXIT", 40) / 2,                          
+        exitButtonY + buttonHeight / 2 - 20, 40, BLACK);
+
+    const char* signature = "created by Stas Malenkov";
+    int signatureX = GetScreenWidth() - MeasureText(signature, 30) - 40; 
+    int signatureY = GetScreenHeight() - 50;                             
+    DrawText(signature, signatureX, signatureY, 30, BLACK);
+
+    EndDrawing();
+}
+
+void Game::Reset() {
+    state = GAME_PROCESS;
+    playerGrid.ResetGrid();
+    botGrid.ResetGrid();
+
+    InitShips();
+    playerTurn = true;
+    isBotShooting = false;
+    botHuntingMode = false;
+    isGameOver = false;
+
+    UpdateMusicStream(backgroundMusic);
+}
