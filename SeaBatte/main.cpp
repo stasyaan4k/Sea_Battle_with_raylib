@@ -1,5 +1,4 @@
 #include "Game.h"
-#include<iostream>
 
 int main() {
     setlocale(0, "");

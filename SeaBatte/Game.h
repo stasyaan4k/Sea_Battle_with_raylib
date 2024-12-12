@@ -22,7 +22,7 @@ public:
     void Run();              
     void HandleInput();      
     void Draw();             
-    void Shoot(Vector2 cell);
+    void PlayerShoot(Vector2 cell);
     void BotShoot();         
     void SwitchTurn();    
     void InitMusic();
@@ -30,8 +30,10 @@ public:
    
 
 private:
-    const float screenWidth = 1920;
-    const float screenHeight = 1080;
+    const float screenWidth = 1800;
+    const float screenHeight = 1000;
+
+    bool isSoundOn = true;
 
     GameState state;
 
@@ -74,6 +76,7 @@ private:
     void DrawVictoryScreen();
     void DrawMenu();
     void Reset();
+    void DrawFrame();
 };
 
 #endif // GAME_H

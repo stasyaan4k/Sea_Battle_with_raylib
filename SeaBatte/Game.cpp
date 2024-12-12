@@ -57,6 +57,17 @@ void Game::HandleInput() {
             state = MENU; 
         }
     }
+
+    if (IsKeyPressed(KEY_SPACE)) {
+        if (isSoundOn) {
+            CloseAudioDevice();
+            isSoundOn = false;
+        }
+        else {
+            InitAudioDevice();
+            isSoundOn = true;
+        }
+    }
     
 
     if (!isGameStarted) {
@@ -91,7 +102,7 @@ void Game::HandleInput() {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                 Vector2 selectedCell = botGrid.GetCellUnderMouse();
                 if (selectedCell.x != -1 && selectedCell.y != -1) {
-                    Shoot(selectedCell);
+                    PlayerShoot(selectedCell);
                 }
             }
         }
@@ -99,7 +110,7 @@ void Game::HandleInput() {
 }
 
 // Выстрел игрока
-void Game::Shoot(Vector2 cell) {
+void Game::PlayerShoot(Vector2 cell) {
     int x = static_cast<int>(cell.x);
     int y = static_cast<int>(cell.y);
 
@@ -225,10 +236,10 @@ void Game::SwitchTurn() {
 void Game::InitMusic() {
     InitAudioDevice();
 
-   backgroundMusic = LoadMusicStream("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\music.mp3");
-   hitSound = LoadSound("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\hitSound.mp3");
-   destroySound = LoadSound("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\destriyedSound.mp3");
-   missSound = LoadSound("C:\\2_КУРС\\ООП\\SeaBatte\\sounds\\missSound.mp3");
+   backgroundMusic = LoadMusicStream("C:\\2_КУРС\\ООП\\Курсовая работа ООП\\SeaBatte\\sounds\\music.mp3");
+   hitSound = LoadSound("C:\\2_КУРС\\ООП\\Курсовая работа ООП\\SeaBatte\\sounds\\hitSound.mp3");
+   destroySound = LoadSound("C:\\2_КУРС\\ООП\\Курсовая работа ООП\\SeaBatte\\sounds\\destroyedSound.mp3");
+   missSound = LoadSound("C:\\2_КУРС\\ООП\\Курсовая работа ООП\\SeaBatte\\sounds\\missSound.mp3");
 }
 
 void Game::UnloadMusic() {
@@ -286,10 +297,13 @@ void Game::DrawTurnIndicator() const {
 // Основной цикл игры
 void Game::Run() {
     InitWindow(screenWidth, screenHeight, "Sea Battle");
+   
     InitMusic();
     while (!WindowShouldClose()) {
+        
         UpdateMusicStream(backgroundMusic);
         PlayMusicStream(backgroundMusic);
+        DrawFrame();
         HandleInput();
         switch (state)
         {
@@ -335,7 +349,7 @@ void Game::Draw() {
 
 //Режим "охоты"
 void Game::AddSurroundingTargets(int x, int y) {
- 
+
     bool horizontal = false, vertical = false;
 
     for (const auto& target : botTargetQueue) {
@@ -351,7 +365,7 @@ void Game::AddSurroundingTargets(int x, int y) {
     }
 
     const std::vector<Vector2> horizontalDirections = {
-        {-1, 0}, {1, 0}  
+        {-1, 0}, {1, 0}
     };
 
     const std::vector<Vector2> verticalDirections = {
@@ -391,6 +405,9 @@ void Game::AddSurroundingTargets(int x, int y) {
 }
 
 
+
+
+//Проверка победителя
 void Game::CheckVictory() {
     if (playerGrid.AreAllShipsDestroyed()) {
         isGameOver = true;
@@ -497,6 +514,7 @@ void Game::DrawMenu() {
     EndDrawing();
 }
 
+//Сброс игрового процесса
 void Game::Reset() {
     state = GAME_PROCESS;
     playerGrid.ResetGrid();
@@ -509,4 +527,14 @@ void Game::Reset() {
     isGameOver = false;
 
     UpdateMusicStream(backgroundMusic);
+}
+
+//jОтрисовка рамки вокруг игрового окна
+void Game::DrawFrame() {
+    int thickness = 5;
+
+    DrawRectangle(0, 0, GetScreenWidth(), thickness, BLACK);
+    DrawRectangle(0, GetScreenHeight() - thickness, GetScreenWidth(), thickness, BLACK);
+    DrawRectangle(0, 0, thickness, GetScreenHeight(), BLACK);
+    DrawRectangle(GetScreenWidth() - thickness, 0, thickness, GetScreenHeight(), BLACK);
 }
